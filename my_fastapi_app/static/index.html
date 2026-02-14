@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Damage Detection</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Car Damage Detection</h1>
+            <p>Upload images of all 4 sides to detect car damages</p>
+        </header>
+
+        <main>
+            <div class="tabs">
+                <button class="tab-button active" onclick="switchTab('images')">Images</button>
+                <button class="tab-button" onclick="switchTab('video')">Video</button>
+                <button class="tab-button" onclick="switchTab('webcam')">Webcam</button>
+            </div>
+
+            <!-- IMAGES SECTION -->
+            <div id="imagesSection" class="input-section">
+                <div class="controls-section">
+                    <label for="imageCount">Number of Images (1-5):</label>
+                    <input type="number" id="imageCount" min="1" max="5" value="1">
+                    <button id="generateSlotsBtn">Set</button>
+                </div>
+
+                <div id="uploadGrid" class="upload-grid">
+                    <!-- Slots will be generated here -->
+                </div>
+
+                <div class="action-section">
+                    <button id="analyzeBtn" disabled>Analyze Images</button>
+                </div>
+            </div>
+
+            <!-- VIDEO SECTION -->
+            <!-- VIDEO SECTION -->
+            <div id="videoSection" class="input-section" style="display: none;">
+                <div class="video-compare-grid">
+                    <!-- Input Column -->
+                    <div class="upload-card video-card">
+                        <h3>Original Video</h3>
+                        <label for="videoUpload" class="upload-label">
+                            <span id="videoText">Choose Video...</span>
+                            <input type="file" id="videoUpload" accept="video/*">
+                        </label>
+                        <div class="video-preview-container" style="display: none;">
+                            <video id="videoPreview" controls width="100%"></video>
+                        </div>
+                    </div>
+
+                    <!-- Output Column -->
+                    <div id="videoResultContainer" class="upload-card video-card" style="display: none;">
+                        <h3>Analyzed Video</h3>
+                        <video id="videoResult" controls width="100%"></video>
+                        <a id="downloadVideoLink" href="#" download="analyzed_video.mp4" class="download-btn">Download
+                            Video</a>
+                        <div id="videoDamageSummary"></div>
+                    </div>
+                </div>
+
+                <div class="action-section">
+                    <button id="analyzeVideoBtn" disabled>Process Video</button>
+                </div>
+            </div>
+
+            <!-- WEBCAM SECTION -->
+            <div id="webcamSection" class="input-section" style="display: none;">
+                <div class="webcam-container">
+                    <video id="webcamVideo" autoplay playsinline></video>
+                    <canvas id="webcamOverlay"></canvas>
+                </div>
+                <div class="action-section">
+                    <button id="startWebcamBtn">Start Webcam</button>
+                    <button id="stopWebcamBtn" disabled>Stop Webcam</button>
+                </div>
+                <div id="webcamResults" class="report-details" style="margin-top: 20px; display: none;">
+                    <h3>Live Detection Log</h3>
+                    <ul id="webcamDamageList" class="video-damage-list"></ul>
+                </div>
+            </div>
+
+            <div id="loading" class="loading-spinner" style="display: none;"></div>
+
+            <div id="results-section" style="display: none;">
+                <h2>Damage Analysis Report</h2>
+                <div id="reportGrid" class="report-grid"></div>
+            </div>
+        </main>
+    </div>
+    <div id="zoomOverlay" class="zoom-overlay" style="display: none;">
+        <img id="zoomImage" src="" alt="Zoomed View">
+    </div>
+    <script src="/static/script.js"></script>
+</body>
+
+</html>
