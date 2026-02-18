@@ -180,7 +180,7 @@ async function generateReport(report) {
         const key = `Image ${i + 1}`;
         const inputId = `img${i}`;
         if (report[key]) {
-            drawBoxes(inputId, report[key]);
+
             const reportImageSrc = await createReportImage(inputId, report[key]);
             const card = createReportCard(key, report[key], reportImageSrc);
             reportGrid.appendChild(card);
