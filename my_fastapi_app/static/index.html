@@ -40,6 +40,10 @@
                 <div class="action-section">
                     <button id="analyzeBtn" disabled>Analyze Images</button>
                 </div>
+                <div id="results-section" style="display: none;">
+                    <h2>Damage Analysis Report</h2>
+                    <div id="reportGrid" class="report-grid"></div>
+                </div>
             </div>
 
             <!-- VIDEO SECTION -->
@@ -91,16 +95,13 @@
 
             <div id="loading" class="loading-spinner" style="display: none;"></div>
 
-            <div id="results-section" style="display: none;">
-                <h2>Damage Analysis Report</h2>
-                <div id="reportGrid" class="report-grid"></div>
-            </div>
+
         </main>
     </div>
     <div id="zoomOverlay" class="zoom-overlay" style="display: none;">
-        <img id="zoomImage" src="" alt="Zoomed View">
+        <img id="zoomImage" src="" alt="Zoomed Image">
     </div>
-    <script src="/static/script.js"></script>
+    <script src="/static/script.js?v=2"></script>
 </body>
 
 </html>

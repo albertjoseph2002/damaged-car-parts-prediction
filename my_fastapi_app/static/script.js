@@ -181,7 +181,7 @@ async function generateReport(report) {
         const inputId = `img${i}`;
         if (report[key]) {
             drawBoxes(inputId, report[key]);
-            const reportImageSrc = await createReportImage(inputId);
+            const reportImageSrc = await createReportImage(inputId, report[key]);
             const card = createReportCard(key, report[key], reportImageSrc);
             reportGrid.appendChild(card);
 
@@ -229,16 +229,48 @@ function drawBoxes(elementIdPrefix, data) {
     });
 }
 
-function createReportImage(elementIdPrefix) {
+function createReportImage(elementIdPrefix, data) {
     return new Promise((resolve) => {
         const img = document.getElementById(`${elementIdPrefix}Preview`);
-        const canvas = document.getElementById(`${elementIdPrefix}Canvas`);
         const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = img.width;
-        tempCanvas.height = img.height;
+
+        // Use natural dimensions to get full resolution
+        tempCanvas.width = img.naturalWidth;
+        tempCanvas.height = img.naturalHeight;
+
         const ctx = tempCanvas.getContext('2d');
+
+        // 1. Draw image at full size
         ctx.drawImage(img, 0, 0);
-        ctx.drawImage(canvas, 0, 0);
+
+        // 2. Draw boxes directly (using original coordinates)
+        if (data && data.boxes) {
+            const boxes = data.boxes;
+            const classes = data.classes;
+            const confidences = data.confidences;
+
+            ctx.lineWidth = 5; // Thicker lines for high-res image
+            ctx.font = '24px Inter, sans-serif'; // Larger font
+
+            boxes.forEach((box, i) => {
+                const [x, y, w, h] = box;
+                const label = classes[i];
+                const score = confidences[i];
+
+                // Draw Box
+                ctx.strokeStyle = '#00FF00';
+                ctx.strokeRect(x, y, w, h);
+
+                const text = `${label} ${Math.round(score)}%`;
+                const textWidth = ctx.measureText(text).width;
+
+                ctx.fillStyle = '#00FF00';
+                ctx.fillRect(x, y - 35, textWidth + 10, 35);
+                ctx.fillStyle = '#000000';
+                ctx.fillText(text, x + 5, y - 7);
+            });
+        }
+
         resolve(tempCanvas.toDataURL('image/jpeg'));
     });
 }
@@ -274,9 +306,13 @@ if (zoomOverlay) {
 if (videoUpload) {
     videoUpload.addEventListener('change', (e) => {
         const file = e.target.files[0];
+        console.log("Video selected:", file);
         if (file) {
-            videoPreview.src = URL.createObjectURL(file);
+            const url = URL.createObjectURL(file);
+            console.log("Video URL:", url);
+            videoPreview.src = url;
             videoPreviewContainer.style.display = 'block';
+            videoPreview.style.display = 'block'; // Ensure video itself is visible
             analyzeVideoBtn.disabled = false;
         }
     });

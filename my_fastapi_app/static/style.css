@@ -368,6 +368,21 @@ button:disabled {
     box-sizing: border-box;
 }
 
+.video-preview-container {
+    width: 100%;
+    margin-top: 15px;
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+video {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 500px;
+}
+
 .video-damage-list {
     list-style: none;
     padding: 0;

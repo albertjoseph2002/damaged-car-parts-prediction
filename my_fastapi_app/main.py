@@ -68,77 +68,112 @@ async def analyze_car(files: List[UploadFile] = File(...)):
 
 @app.post("/analyze_video")
 async def analyze_video(file: UploadFile = File(...)):
-    # Create temp directory for videos
-    os.makedirs("static/videos", exist_ok=True)
-    
-    input_video_path = f"static/videos/input_{file.filename}"
-    output_video_path = f"static/videos/output_{file.filename}"
-    
-    with open(input_video_path, "wb") as buffer:
-        buffer.write(await file.read())
+    try:
+        # Create temp directory for videos
+        os.makedirs("static/videos", exist_ok=True)
         
-    cap = cv2.VideoCapture(input_video_path)
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fps = int(cap.get(cv2.CAP_PROP_FPS))
-    
-    # Define codec and create VideoWriter
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v') # mp4v for compatibility
-    out = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
-    
-    # Use global detection object
-    
-    unique_damages = {} # {label: max_confidence}
-
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
+        # Use .webm for better browser compatibility (VP8 codec)
+        base_name = os.path.splitext(file.filename)[0]
+        output_filename = f"output_{base_name}.webm"
+        output_video_path = f"static/videos/{output_filename}"
+        
+        input_video_path = f"static/videos/input_{file.filename}"
+        
+        with open(input_video_path, "wb") as buffer:
+            buffer.write(await file.read())
             
-        # Run detection on frame
+        cap = cv2.VideoCapture(input_video_path)
+        if not cap.isOpened():
+            raise HTTPException(status_code=400, detail="Could not open video file")
+            
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        fps = int(cap.get(cv2.CAP_PROP_FPS))
+        
+        if width == 0 or height == 0:
+             raise HTTPException(status_code=400, detail="Invalid video dimensions")
+
+        # Define codec and create VideoWriter
+        # VP80 (WebM) is widely supported by OpenCV and Browsers
         try:
-            results = detection(frame)
-            
-            boxes = results['boxes']
-            classes = results['classes']
-            confidences = results['confidences']
-            
-            for i, box in enumerate(boxes):
-                x, y, w, h = box
-                label = classes[i]
-                conf = confidences[i]
-                
-                # Update max confidence for this label
-                if label not in unique_damages or conf > unique_damages[label]:
-                    unique_damages[label] = conf
-                
-                # Draw rectangle
-                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                
-                # Draw label
-                text = f"{label}: {conf:.0f}%"
-                (text_width, text_height), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
-                
-                cv2.rectangle(frame, (x, y - 20), (x + text_width, y), (0, 255, 0), -1)
-                cv2.putText(frame, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
-        
-        except Exception as e:
-            print(f"Error processing frame: {e}")
-            continue
+            fourcc = cv2.VideoWriter_fourcc(*'vp80') 
+        except:
+            print("VP80 codec init failed")
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            output_filename = f"output_{base_name}.mp4"
+            output_video_path = f"static/videos/{output_filename}"
 
-        out.write(frame)
-        
-    cap.release()
-    out.release()
-    
-    # Format summary for frontend
-    summary_list = [{"label": k, "score": v} for k, v in unique_damages.items()]
-    
-    return {
-        "video_url": f"/static/videos/output_{file.filename}",
-        "damage_summary": summary_list
-    }
+        out = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
+        if not out.isOpened():
+             # Try fallback to mp4v if vp80 failed to open writer (not just init)
+             print("VideoWriter failed to open with VP80. Trying mp4v fallback.")
+             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+             output_filename = f"output_{base_name}.mp4"
+             output_video_path = f"static/videos/{output_filename}"
+             out = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
+             if not out.isOpened():
+                 raise HTTPException(status_code=500, detail="Could not initialize VideoWriter")
 
+        unique_damages = {} # {label: max_confidence}
+
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+                
+            # Run detection on frame
+            try:
+                # Detection class expects BGR image (it handles swapRB=True internally)
+                results = detection(frame) 
+                
+                boxes = results['boxes']
+                classes = results['classes']
+                confidences = results['confidences']
+                
+                for i, box in enumerate(boxes):
+                    x, y, w, h = box
+                    label = classes[i]
+                    conf = confidences[i]
+                    
+                    # Track unique damages
+                    if label not in unique_damages or conf > unique_damages[label]:
+                         unique_damages[label] = conf
+
+                    # Draw rectangle
+                    cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                    
+                    # Draw label: label + percentage
+                    text = f"{label}: {conf:.0f}%"
+                    
+                    # Get text size
+                    (text_width, text_height), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
+                    
+                    # Draw text background
+                    cv2.rectangle(frame, (x, y - 20), (x + text_width, y), (0, 255, 0), -1)
+                    
+                    # Draw text
+                    cv2.putText(frame, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+                    
+            except Exception as e:
+                print(f"Frame processing error: {e}")
+                pass
+            
+            out.write(frame)
+            
+        cap.release()
+        out.release()
+        
+        # Format summary for frontend
+        summary_list = [{"label": k, "score": float(v)} for k, v in unique_damages.items()]
+        
+        return {"video_url": f"/static/videos/{output_filename}", "damage_summary": summary_list}
+
+    except Exception as e:
+        print(f"Error processing video: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == '__main__':
     uvicorn.run("main:app", host="0.0.0.0", port=8080)
+
